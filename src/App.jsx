@@ -164,7 +164,7 @@ const HeroSection = ({ langToggle }) => {
           {langToggle === 'ml' ? "മികച്ച ഉൽപ്പന്നങ്ങൾ, നിങ്ങളുടെ വീട്ടുവാതിൽക്കൽ!" : "Great Products, Delivered to Your Doorstep!"}
         </h1>
         <p className="text-xl sm:text-2xl text-gray-200 font-light">
-          {langToggle === 'ml' ? "വേഗത, വിശ്വാസ്യത, മികച്ച വില!" : "Speed, Reliability, Best Price!"}
+          {langToggle === 'ml' ? "വേഗത, വിശ്വാസ്യത, - കുറഞ്ഞ വില!" : "Speed, Reliability, low Price!"}
         </p>
       </div>
     </section>
