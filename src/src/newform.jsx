@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Mail, Phone, MapPin, Package, DollarSign, Send, ShoppingCart, User } from 'lucide-react'; // For icons
 
 // ⚠️ Note: These constants are copied from App.jsx for simplicity.
 function buildWhatsAppLink(phone, message) {
@@ -58,16 +59,51 @@ const ProductGallery = ({ product }) => {
     );
 };
 
+/**
+ * ⚙️ Reusable Input Field Component (Moved outside OrderPage)
+ */
+const InputField = ({ labelMl, labelEn, id, type = 'text', value, onChange, placeholderMl, placeholderEn, Icon, required = false, langToggle, clearError }) => (
+    <div className="mb-6">
+        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+            <Icon size={16} className="inline-block mr-2 text-indigo-500" />
+            {langToggle === 'ml' ? labelMl : labelEn}
+            {required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+        <input
+            id={id}
+            type={type}
+            value={value}
+            onChange={(e) => { 
+                onChange(e.target.value); 
+                clearError(); // Use clearError prop
+            }}
+            placeholder={langToggle === 'ml' ? placeholderMl : placeholderEn}
+            required={required}
+            className="w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500 text-base"
+        />
+    </div>
+);
+
 
 /**
  * 🗃️ The Full Page Order Form Component (OrderPage)
  * Displays product details, the gallery, and the order form.
  */
 const OrderPage = ({ selectedProduct, onBack, langToggle }) => {
-    // State for form inputs
+    // State for form inputs (UPDATED: Added stateName)
     const [quantity, setQuantity] = useState(1);
-    const [address, setAddress] = useState('');
+    const [fullName, setFullName] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [houseName, setHouseName] = useState('');
+    const [street, setStreet] = useState('');
+    const [city, setCity] = useState('');
+    const [stateName, setStateName] = useState(''); // NEW STATE
+    const [pincode, setPincode] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('UPI'); 
+    
+    // State for validation message display
+    const [validationError, setValidationError] = useState('');
+
 
     // Payment Options
     const paymentOptions = [
@@ -76,24 +112,38 @@ const OrderPage = ({ selectedProduct, onBack, langToggle }) => {
         { value: 'WhatsApp Pay', label_ml: 'WhatsApp Pay', label_en: 'WhatsApp Pay' },
     ];
 
+    // Function to clear errors on input change
+    const clearError = () => setValidationError('');
+
+
     // Handle final order confirmation and redirect to WhatsApp
     const handleConfirmOrder = () => {
-        // Basic validation
-        if (quantity < 1 || address.trim() === '') {
-            console.error(langToggle === 'ml' ? "എണ്ണവും വിലാസവും നിർബന്ധമാണ്." : "Quantity and Address are mandatory.");
-            // Use a custom message box instead of alert()
-            document.getElementById('validation-message').textContent = langToggle === 'ml' ? "എണ്ണവും വിലാസവും നിർബന്ധമാണ്." : "Quantity and Address are mandatory.";
-            document.getElementById('validation-message').classList.remove('hidden');
+        // Basic validation (UPDATED: Added stateName check)
+        if (quantity < 1 || fullName.trim() === '' || phoneNumber.trim() === '' || houseName.trim() === '' || city.trim() === '' || stateName.trim() === '' || pincode.trim() === '') {
+            const errorMsg = langToggle === 'ml' ? "എല്ലാ പ്രധാന വിവരങ്ങളും (പേര്, ഫോൺ, വിലാസം, പിൻകോഡ്) നൽകുന്നത് നിർബന്ധമാണ്." : "All mandatory fields (Name, Phone, Address, Pincode) must be filled.";
+            setValidationError(errorMsg);
             return;
         }
 
+        // Combine shipping details into one clean address string (UPDATED: Added stateName)
+        const shippingAddress = `
+            ${houseName.trim()}, 
+            ${street.trim() ? street.trim() + ', ' : ''}
+            ${city.trim()}, ${stateName.trim()} - ${pincode.trim()}
+        `.trim().replace(/,(\s*),/g, ',').replace(/\s*,\s*$/, '').replace(/\s*\n\s*/g, ' '); // Clean up extra commas/spaces
+        
         const waMessage = `
 *പുതിയ ഓർഡർ - New Order*
 -----------------------------------
 *ഉൽപ്പന്നം (Product):* ${selectedProduct.name}
 *വില (Price):* ${selectedProduct.price}
 *എണ്ണം (Quantity):* ${quantity}
-*വിലാസം (Address):* ${address.trim()}
+
+*ഷിപ്പിംഗ് വിവരങ്ങൾ (Shipping Details)*
+-----------------------------------
+*പേര് (Name):* ${fullName.trim()}
+*ഫോൺ (Phone):* ${phoneNumber.trim()}
+*വിലാസം (Address):* ${shippingAddress}
 *പേയ്‌മെൻ്റ് രീതി (Payment Method):* ${paymentMethod}
 -----------------------------------
 ദയവായി ഓർഡർ ഉറപ്പാക്കുക.
@@ -106,12 +156,17 @@ const OrderPage = ({ selectedProduct, onBack, langToggle }) => {
         onBack(); // Go back to product list after submission
     };
 
+
     return (
         // 🎨 UPDATED STYLING: Wider content area for gallery
         <div className="max-w-4xl mx-auto py-12 px-6 sm:px-8 lg:px-10 bg-white shadow-2xl rounded-3xl my-10 border border-gray-100">
             
             {/* Validation Message Box (for error display) */}
-            <p id="validation-message" className="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert"></p>
+            {validationError && (
+                 <p className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6 font-medium" role="alert">
+                    {validationError}
+                 </p>
+            )}
 
             <button 
                 onClick={onBack} 
@@ -125,18 +180,21 @@ const OrderPage = ({ selectedProduct, onBack, langToggle }) => {
                 <h1 className="text-4xl font-extrabold text-gray-900 mb-2">{selectedProduct.name}</h1>
                 <p className="text-3xl font-bold text-indigo-700 mb-6">{selectedProduct.price}</p>
                 
-                {/* 🟢 NEW: Product Gallery Component */}
+                {/* 🟢 Product Gallery Component */}
                 <ProductGallery product={selectedProduct} />
             </div>
 
-            <h2 className="text-3xl font-bold text-gray-900 mb-6 border-b-2 border-indigo-200 pb-2">
+            <h2 className="text-3xl font-bold text-gray-900 mb-6 border-b-2 border-indigo-200 pb-2 flex items-center">
+                <ShoppingCart className="mr-3 text-indigo-600" size={28} />
                 {langToggle === 'ml' ? "ഓർഡർ വിശദാംശങ്ങൾ" : "Order Details"}
             </h2>
 
             {/* 🔢 Quantity Input */}
-            <div className="mb-6">
-                <label htmlFor="qty" className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="mb-8 p-4 bg-indigo-50 rounded-xl">
+                <label htmlFor="qty" className="block text-sm font-medium text-indigo-800 mb-2 font-semibold">
+                    <Package size={16} className="inline-block mr-2" />
                     {langToggle === 'ml' ? "എണ്ണം (Quantity)" : "Quantity"}
+                    <span className="text-red-500 ml-1">*</span>
                 </label>
                 <input
                     id="qty"
@@ -144,40 +202,136 @@ const OrderPage = ({ selectedProduct, onBack, langToggle }) => {
                     min="1"
                     value={quantity}
                     onChange={(e) => {
-                        document.getElementById('validation-message').classList.add('hidden'); // Clear error on interaction
+                        clearError(); // Clear error on interaction
                         setQuantity(Math.max(1, Number(e.target.value)))
                     }}
-                    className="w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500 text-lg"
-                />
-            </div>
-
-            {/* 🏠 Address Input */}
-            <div className="mb-6">
-                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-                    {langToggle === 'ml' ? "വിലാസം (Shipping Address)" : "Shipping Address"}
-                </label>
-                <textarea
-                    id="address"
-                    value={address}
-                    onChange={(e) => {
-                        document.getElementById('validation-message').classList.add('hidden'); // Clear error on interaction
-                        setAddress(e.target.value)
-                    }}
-                    rows="4" 
-                    placeholder={langToggle === 'ml' ? "പൂർണ്ണമായ വിലാസം, പിൻ കോഡ്, ഫോൺ നമ്പർ എന്നിവ നൽകുക" : "Enter full shipping address, pin code, and phone number here"}
-                    className="w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-base"
+                    className="w-full border border-indigo-300 rounded-lg shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500 text-lg font-bold"
                 />
             </div>
             
+            <h2 className="text-3xl font-bold text-gray-900 mb-6 border-b-2 border-indigo-200 pb-2 flex items-center">
+                <MapPin className="mr-3 text-indigo-600" size={28} />
+                {langToggle === 'ml' ? "ഷിപ്പിംഗ് വിലാസം" : "Shipping Address"}
+            </h2>
+
+            {/* 👤 Full Name Input */}
+            <InputField 
+                id="fullName" 
+                labelMl="പൂർണ്ണമായ പേര്" 
+                labelEn="Full Name" 
+                value={fullName} 
+                onChange={setFullName}
+                placeholderMl="ഇവിടെ നിങ്ങളുടെ പേര് നൽകുക"
+                placeholderEn="Enter your full name here"
+                Icon={User}
+                required
+                langToggle={langToggle}
+                clearError={clearError}
+            />
+
+            {/* 📞 Phone Number Input */}
+            <InputField 
+                id="phoneNumber" 
+                labelMl="ഫോൺ നമ്പർ" 
+                labelEn="Phone Number" 
+                type="tel"
+                value={phoneNumber} 
+                onChange={setPhoneNumber}
+                placeholderMl="10 അക്ക ഫോൺ നമ്പർ"
+                placeholderEn="10 digit phone number"
+                Icon={Phone}
+                required
+                langToggle={langToggle}
+                clearError={clearError}
+            />
+
+            {/* Address Row 1: House/Building Name */}
+            <InputField 
+                id="houseName" 
+                labelMl="വീട്ടുപേര് / കെട്ടിടത്തിൻ്റെ പേര്" 
+                labelEn="House / Building Name" 
+                value={houseName} 
+                onChange={setHouseName}
+                placeholderMl="ഭവനം, അപ്പാർട്ട്മെൻ്റ്, അല്ലെങ്കിൽ സ്ഥാപനം"
+                placeholderEn="House, Apartment, or Establishment"
+                Icon={MapPin}
+                required
+                langToggle={langToggle}
+                clearError={clearError}
+            />
+
+            {/* Address Row 2: Street / Locality */}
+            <InputField 
+                id="street" 
+                labelMl="തെരുവ് / സ്ഥലം" 
+                labelEn="Street / Locality" 
+                value={street} 
+                onChange={setStreet}
+                placeholderMl="പ്രധാനപ്പെട്ട റോഡ് അല്ലെങ്കിൽ സമീപസ്ഥലം"
+                placeholderEn="Major street or locality"
+                Icon={MapPin}
+                langToggle={langToggle}
+                clearError={clearError}
+            />
+
+            {/* Address Row 3: City, State, and Pincode */}
+            {/* UPDATED: Split into 3 columns for City, State, and Pincode */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <InputField 
+                    id="city" 
+                    labelMl="നഗരം / ജില്ല" 
+                    labelEn="City / District" 
+                    value={city} 
+                    onChange={setCity}
+                    placeholderMl="സ്ഥലം, ജില്ല"
+                    placeholderEn="City, District"
+                    Icon={MapPin}
+                    required
+                    langToggle={langToggle}
+                    clearError={clearError}
+                />
+                
+                {/* 📍 NEW STATE FIELD */}
+                <InputField 
+                    id="state" 
+                    labelMl="സംസ്ഥാനം" 
+                    labelEn="State" 
+                    value={stateName} 
+                    onChange={setStateName}
+                    placeholderMl="സംസ്ഥാനത്തിൻ്റെ പേര്"
+                    placeholderEn="State Name"
+                    Icon={MapPin}
+                    required
+                    langToggle={langToggle}
+                    clearError={clearError}
+                />
+                
+                <InputField 
+                    id="pincode" 
+                    labelMl="പിൻകോഡ്" 
+                    labelEn="Pincode" 
+                    type="number"
+                    value={pincode} 
+                    onChange={setPincode}
+                    placeholderMl="6 അക്ക പിൻകോഡ്"
+                    placeholderEn="6 digit Pincode"
+                    Icon={Mail}
+                    required
+                    langToggle={langToggle}
+                    clearError={clearError}
+                />
+            </div>
+
             {/* 💳 Payment Method Selector */}
-            <div className="mb-8">
+            <div className="mb-8 mt-6">
                 <label htmlFor="payment" className="block text-sm font-medium text-gray-700 mb-1">
+                    <DollarSign size={16} className="inline-block mr-2 text-indigo-500" />
                     {langToggle === 'ml' ? "പേയ്‌മെൻ്റ് രീതി (Preferred Payment Method)" : "Preferred Payment Method"}
                 </label>
                 <select
                     id="payment"
                     value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    onChange={(e) => { setPaymentMethod(e.target.value); clearError(); }}
                     className="w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-base"
                 >
                     {paymentOptions.map(option => (
@@ -191,9 +345,10 @@ const OrderPage = ({ selectedProduct, onBack, langToggle }) => {
             {/* Confirm Order Button */}
             <button
                 onClick={handleConfirmOrder}
-                className="w-full bg-green-600 text-white font-bold py-4 rounded-xl transition-colors hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-400 shadow-xl text-xl"
+                className="w-full bg-green-600 text-white font-bold py-4 rounded-xl transition-colors hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-400 shadow-xl text-xl flex items-center justify-center"
             >
-                💬 {langToggle === 'ml' ? "ഓർഡർ സ്ഥിരീകരിക്കുക" : "Confirm Order"}
+                <Send className="mr-3" size={24} />
+                💬 {langToggle === 'ml' ? "ഓർഡർ സ്ഥിരീകരിക്കുക (വാട്ട്‌സ്ആപ്പ് വഴി)" : "Confirm Order (Via WhatsApp)"}
             </button>
         </div>
     );
